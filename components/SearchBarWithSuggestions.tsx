@@ -243,7 +243,7 @@ export default function SearchBarWithSuggestions() {
                   className="p-3 bg-gray-800 border-t border-gray-700 hover:bg-gray-700 transition-colors cursor-pointer text-center"
                 >
                   <span className="text-sm font-medium text-white">
-                    View all results for "{query}"
+                    View all results for &quot;{query}&quot;
                   </span>
                 </div>
               )}

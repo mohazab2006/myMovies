@@ -179,7 +179,7 @@ function HomeContent() {
             AI Movie Recommendations
           </h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Tell us what you're in the mood for, and we'll find the perfect movie for you
+            Tell us what you&apos;re in the mood for, and we&apos;ll find the perfect movie for you
           </p>
         </div>
 
@@ -252,7 +252,7 @@ function HomeContent() {
           <div className="fade-in">
             <h2 className="text-3xl font-bold mb-8 text-white">
               {isSearchMode ? (
-                <>Search Results {searchQuery && <span className="text-gray-400">for "{searchQuery}"</span>}</>
+                <>Search Results {searchQuery && <span className="text-gray-400">for &quot;{searchQuery}&quot;</span>}</>
               ) : (
                 <>Recommended Movies</>
               )}
@@ -293,7 +293,7 @@ function HomeContent() {
             {/* Trending Movies Section */}
             {!isLoadingDefault && trendingMovies.length > 0 && (
               <div className="mb-12">
-                <h2 className="text-3xl font-bold mb-6 text-white">This Month's Top Movies</h2>
+                <h2 className="text-3xl font-bold mb-6 text-white">This Month&apos;s Top Movies</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {trendingMovies.map((movie, index) => (
                     <div key={movie.id} style={{ animationDelay: `${index * 50}ms` }}>

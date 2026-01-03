@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
           const originalMovie = candidates[index];
           const movieGenreIds = originalMovie.genre_ids || [];
           // Check if movie has at least one of the requested genres
-          return requestedGenreIds.some(requestedId => movieGenreIds.includes(requestedId));
+          return requestedGenreIds.some((requestedId: number) => movieGenreIds.includes(requestedId));
         }
         return true;
       });

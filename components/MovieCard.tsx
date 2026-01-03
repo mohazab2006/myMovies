@@ -68,7 +68,7 @@ export default function MovieCard({
           
           {aiExplanation && (
             <p className="text-sm text-gray-300 italic mb-2 line-clamp-2 leading-relaxed">
-              "{aiExplanation}"
+              &quot;{aiExplanation}&quot;
             </p>
           )}
           
