@@ -48,18 +48,18 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-black">
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-white">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-3 sm:mb-4 text-white">
             Search Movies
           </h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-2xl mx-auto px-4">
             Find movies by title, actor, or keyword
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto mb-12">
-          <div className="bg-gray-900/90 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-800">
+        <div className="max-w-4xl mx-auto mb-8 sm:mb-12 px-4">
+          <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-800">
             <SearchBar onSearch={handleSearch} isLoading={isLoading} />
           </div>
         </div>
@@ -77,8 +77,8 @@ export default function SearchPage() {
 
         {results.length > 0 && (
           <div>
-            <h2 className="text-3xl font-bold mb-8 text-center text-white">
-              Search Results {searchQuery && `for "${searchQuery}"`}
+            <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center text-white px-4">
+              Search Results {searchQuery && <span className="block sm:inline">for &quot;{searchQuery}&quot;</span>}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {results.map((movie) => (

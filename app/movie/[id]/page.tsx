@@ -207,14 +207,14 @@ export default function MovieDetailPage() {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="flex flex-col md:flex-row gap-6 sm:gap-8">
           {/* Poster */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 mx-auto md:mx-0">
             <img
               src={getPosterUrl(movie.poster_path)}
               alt={movie.title}
-              className="w-64 rounded-xl shadow-2xl"
+              className="w-48 sm:w-56 md:w-64 rounded-xl shadow-2xl"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9Ijc1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTAwIiBoZWlnaHQ9Ijc1MCIgZmlsbD0iI2U1ZTdlYiIvPjx0ZXh0IHg9IjI1MCIgeT0iMzc1IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiPk5vIFBvc3RlciBBdmFpbGFibGU8L3RleHQ+PC9zdmc+';
               }}
@@ -223,20 +223,20 @@ export default function MovieDetailPage() {
 
           {/* Details */}
           <div className="flex-1">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h1 className="text-4xl md:text-5xl font-extrabold mb-3 text-white">{movie.title}</h1>
-                <div className="flex flex-wrap gap-4 text-gray-300 mb-4 font-medium">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+              <div className="flex-1">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold mb-2 sm:mb-3 text-white">{movie.title}</h1>
+                <div className="flex flex-wrap gap-2 sm:gap-4 text-gray-300 mb-3 sm:mb-4 font-medium text-sm sm:text-base">
                   <span>{year}</span>
                   <span>•</span>
                   <span>{runtime}</span>
                   <span>•</span>
-                  <span>{genres}</span>
+                  <span className="break-words">{genres}</span>
                 </div>
               </div>
               <button
                 onClick={toggleWatchlist}
-                className={`px-5 py-2.5 rounded-xl transition-all font-semibold shadow-lg hover:shadow-xl ${
+                className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl transition-all font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base whitespace-nowrap ${
                   watchlist.includes(movie.id)
                     ? 'bg-white text-black hover:bg-gray-100'
                     : 'bg-white text-black hover:bg-gray-100'

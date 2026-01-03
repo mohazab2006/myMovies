@@ -75,19 +75,35 @@ export default function WatchlistPage() {
     fetchMovies();
   }, [watchlist]);
 
-  const toggleWatched = (movieId: number) => {
+  const toggleWatched = (movieId: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const item = watchlist.find((w) => w.id === movieId);
+    const newWatchedState = !item?.watched;
+    
     const updated = watchlist.map((item) => {
       if (item.id === movieId) {
         return {
           ...item,
-          watched: !item.watched,
-          watchedAt: !item.watched ? new Date().toISOString() : undefined,
+          watched: newWatchedState,
+          watchedAt: newWatchedState ? new Date().toISOString() : undefined,
         };
       }
       return item;
     });
     setWatchlist(updated);
     localStorage.setItem('watchlist', JSON.stringify(updated));
+    
+    // Auto-switch filter: if marking as watched, switch to "watched" filter; if unmarking, switch to "all"
+    if (newWatchedState) {
+      setFilter('watched');
+    } else {
+      setFilter('all');
+    }
+    
+    // Dispatch event to update navbar count (in case it affects anything)
+    window.dispatchEvent(new Event('watchlistUpdated'));
   };
 
   const removeFromWatchlist = (movieId: number) => {
@@ -95,6 +111,8 @@ export default function WatchlistPage() {
     setWatchlist(updated);
     localStorage.setItem('watchlist', JSON.stringify(updated));
     setMovies(movies.filter((m) => m.id !== movieId));
+    // Dispatch event to update navbar count
+    window.dispatchEvent(new Event('watchlistUpdated'));
   };
 
   const filteredAndSortedMovies = movies
@@ -124,9 +142,9 @@ export default function WatchlistPage() {
     <div className="min-h-screen bg-black">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-8">
-          <h1 className="text-5xl font-extrabold mb-4 text-white">My Watchlist</h1>
-          <p className="text-gray-300 text-lg">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-2 sm:mb-4 text-white">My Watchlist</h1>
+          <p className="text-gray-300 text-base sm:text-lg">
             {watchlist.length === 0
               ? 'Your watchlist is empty'
               : `${watchlist.length} movie${watchlist.length !== 1 ? 's' : ''} saved`}
@@ -134,11 +152,11 @@ export default function WatchlistPage() {
         </div>
 
         {watchlist.length > 0 && (
-          <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex gap-2">
+          <div className="mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${
                   filter === 'all'
                     ? 'bg-white text-black'
                     : 'bg-gray-900 text-white border border-gray-800 hover:bg-gray-800'
@@ -148,7 +166,7 @@ export default function WatchlistPage() {
               </button>
               <button
                 onClick={() => setFilter('unwatched')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${
                   filter === 'unwatched'
                     ? 'bg-white text-black'
                     : 'bg-gray-900 text-white border border-gray-800 hover:bg-gray-800'
@@ -158,7 +176,7 @@ export default function WatchlistPage() {
               </button>
               <button
                 onClick={() => setFilter('watched')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${
                   filter === 'watched'
                     ? 'bg-white text-black'
                     : 'bg-gray-900 text-white border border-gray-800 hover:bg-gray-800'
@@ -171,7 +189,7 @@ export default function WatchlistPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'added' | 'title' | 'rating')}
-              className="px-4 py-2 rounded-lg bg-gray-900 text-white border border-gray-800 focus:outline-none focus:ring-2 focus:ring-white"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-gray-900 text-white border border-gray-800 focus:outline-none focus:ring-2 focus:ring-white text-sm sm:text-base w-full sm:w-auto"
             >
               <option value="added">Sort by: Recently Added</option>
               <option value="title">Sort by: Title</option>
@@ -221,31 +239,48 @@ export default function WatchlistPage() {
                     vote_average={movie.vote_average}
                     overview={movie.overview}
                   />
-                  <div className="absolute top-2 right-2 flex gap-2 z-10">
+                  {/* Watched button - top left, prominent */}
+                  <div className="absolute top-2 left-2 z-10">
                     <button
-                      onClick={() => toggleWatched(movie.id)}
-                      className={`p-2 rounded-full shadow-lg transition-all ${
+                      onClick={(e) => toggleWatched(movie.id, e)}
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg shadow-lg transition-all font-semibold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 ${
                         isWatched
-                          ? 'bg-green-600 text-white'
-                          : 'bg-gray-900/90 text-white hover:bg-gray-800'
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-gray-900/95 text-white hover:bg-gray-800 border border-gray-700'
                       }`}
                       title={isWatched ? 'Mark as unwatched' : 'Mark as watched'}
                     >
-                      {isWatched ? '✓' : '○'}
+                      {isWatched ? (
+                        <>
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          <span className="hidden sm:inline">Watched</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="hidden sm:inline">Mark Watched</span>
+                        </>
+                      )}
                     </button>
+                  </div>
+                  {/* Remove button - top right */}
+                  <div className="absolute top-2 right-2 z-10">
                     <button
-                      onClick={() => removeFromWatchlist(movie.id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        removeFromWatchlist(movie.id);
+                      }}
                       className="p-2 rounded-full bg-red-600/90 text-white hover:bg-red-700 shadow-lg transition-all"
                       title="Remove from watchlist"
                     >
                       ×
                     </button>
                   </div>
-                  {isWatched && (
-                    <div className="absolute top-2 left-2 bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold">
-                      Watched
-                    </div>
-                  )}
                 </div>
               );
             })}

@@ -172,30 +172,30 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-black">
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-white">
+        <div className="text-center mb-6 sm:mb-8 md:mb-12">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold mb-2 sm:mb-3 md:mb-4 text-white px-2 sm:px-4">
             AI Movie Recommendations
           </h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 max-w-2xl mx-auto px-2 sm:px-4">
             Tell us what you&apos;re in the mood for, and we&apos;ll find the perfect movie for you
           </p>
         </div>
 
         {/* Input Card - Hide when in search mode */}
         {!isSearchMode && (
-        <div className="max-w-4xl mx-auto mb-12">
-          <div className="bg-gray-900/90 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-800">
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-3 text-gray-200">
+        <div className="max-w-4xl mx-auto mb-6 sm:mb-8 md:mb-12 px-2 sm:px-4">
+          <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-5 md:p-6 lg:p-8 border border-gray-800">
+            <div className="mb-4 sm:mb-6">
+              <label className="block text-xs sm:text-sm font-semibold mb-2 sm:mb-3 text-gray-200">
                 What kind of movie are you looking for?
               </label>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="e.g., 'A smart thriller with a twist ending' or 'Something lighthearted and funny from the 90s'"
-                className="w-full px-4 py-3 border-2 border-gray-700 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all duration-200 resize-none placeholder-gray-400"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-700 rounded-lg sm:rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all duration-200 resize-none placeholder-gray-400 text-sm sm:text-base"
                 rows={3}
               />
             </div>
@@ -217,7 +217,7 @@ function HomeContent() {
             <button
               onClick={handleGenerate}
               disabled={isLoading || (!prompt && selectedGenres.length === 0)}
-              className="w-full mt-8 px-6 py-4 bg-white text-black rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:transform-none"
+              className="w-full mt-4 sm:mt-6 md:mt-8 px-4 sm:px-6 py-3 sm:py-4 bg-white text-black rounded-lg sm:rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold text-sm sm:text-base md:text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:transform-none"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
