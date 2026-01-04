@@ -34,7 +34,7 @@ AI-powered movie recommendation app built with Next.js.
 - **Get recommendations**: Enter what you want (e.g., "funny movie") and click Generate
 - **Search**: Use the search bar to find movies
 - **Watchlist**: Click "Add to Watchlist" on any movie to save it
-   ```
+
 ## Tech Stack
 
 - Next.js
