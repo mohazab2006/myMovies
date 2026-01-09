@@ -2,43 +2,72 @@
 
 AI-powered movie recommendation app built with Next.js.
 
-## What it does
+Describe what you're in the mood for and it'll find movies that actually match — not just random suggestions.
 
-- Get movie recommendations using AI
-- Search for movies by title or actor
-- View movie details with cast and ratings
-- Save movies to your watchlist
+## Features
+
+- **AI recommendations** — describe what you want in plain English
+- **Filters** — narrow down by genre, rating, runtime, year
+- **Search** — find specific movies or browse by actor
+- **Watchlist** — save stuff to watch later (stored in your browser)
+- **Trending** — see what's popular this week
+- **Seasonal picks** — Halloween movies in October, holiday films in December, etc.
 
 ## Setup
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
-2. Create `.env.local` file:
-   ```env
-   OPENAI_API_KEY=your_openai_key
-   TMDB_API_KEY=your_tmdb_key
-   ```
+Create `.env.local`:
+```
+OPENAI_API_KEY=your_key
+TMDB_API_KEY=your_key
+```
 
-3. Run the app:
-   ```bash
-   npm run dev
-   ```
+Get your keys from:
+- OpenAI: https://platform.openai.com/api-keys
+- TMDB: https://www.themoviedb.org/settings/api
 
-4. Open [http://localhost:3000](http://localhost:3000)
+Run it:
+```bash
+npm run dev
+```
 
-## How to use
+Open http://localhost:3000
 
-- **Get recommendations**: Enter what you want (e.g., "funny movie") and click Generate
-- **Search**: Use the search bar to find movies
-- **Watchlist**: Click "Add to Watchlist" on any movie to save it
+## How the AI works
 
-## Tech Stack
+When you type something like "90s action movie with a good soundtrack", the app sends that to GPT-4 along with your filters. GPT returns a list of movie titles that match. Then we look those up on TMDB to get posters, ratings, and details.
 
-- Next.js
+The AI also explains why it picked each movie, which shows up on the cards.
+
+## Stack
+
+- Next.js 14
 - TypeScript
-- Tailwind CSS
-- OpenAI API
+- Tailwind
+- OpenAI API (GPT-4)
 - TMDB API
+
+## File structure
+
+```
+app/
+  page.tsx          # home page with recommendations
+  search/           # search results page
+  watchlist/        # saved movies
+  movie/[id]/       # movie detail page
+  api/              # backend routes
+    generate/       # AI recommendations
+    search/         # movie search
+    trending/       # trending movies
+    seasonal/       # seasonal picks
+
+components/         # reusable UI stuff
+lib/                # API clients (openai, tmdb)
+```
+
+---
+
+Built because Netflix recommendations got stale and I wanted something smarter.
