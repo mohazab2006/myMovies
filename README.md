@@ -4,10 +4,10 @@ AI-powered movie recommendation app built with Next.js.
 
 ## What it does
 
-- Get movie recommendations using AI
+- AI-powered movie recommendations tailored to user preferences
 - Search for movies by title or actor
-- View movie details with cast and ratings
-- Save movies to your watchlist
+- View detailed movie information, including descriptions, cast, reviews, and ratings
+- Save and manage movies in a personalized watchlist
 
 ## Setup
 
