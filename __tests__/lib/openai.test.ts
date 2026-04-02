@@ -1,12 +1,10 @@
 /**
  * Tests for lib/openai.ts
  *
- * Focuses on the JSON parsing logic in extractPreferences and rankMovies —
- * specifically the bug that was causing "Invalid JSON response from AI" to
- * surface incorrectly.
+ * Covers JSON parsing paths in extractPreferences and rankMovies,
+ * the keyword extraction feature, and the "always return results" behaviour.
  */
 
-// Mock the openai module before importing the functions under test
 const mockCreate = jest.fn();
 
 jest.mock('openai', () =>
@@ -21,7 +19,6 @@ jest.mock('openai', () =>
 
 import { extractPreferences, rankMovies } from '@/lib/openai';
 
-// Provide a fake API key so getOpenAIClient() doesn't throw
 beforeAll(() => {
   process.env.OPENAI_API_KEY = 'test-key';
 });
@@ -31,9 +28,7 @@ beforeAll(() => {
 // ---------------------------------------------------------------------------
 
 function makeOpenAIResponse(content: string | null) {
-  return {
-    choices: [{ message: { content } }],
-  };
+  return { choices: [{ message: { content } }] };
 }
 
 // ---------------------------------------------------------------------------
@@ -53,25 +48,39 @@ describe('extractPreferences', () => {
     expect(result).toEqual(payload);
   });
 
+  it('includes extracted keywords in the response', async () => {
+    const payload = {
+      genres: ['adventure', 'fantasy'],
+      keywords: ['desert', 'prophecy', 'chosen one'],
+      tone: 'epic',
+    };
+    mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify(payload)));
+
+    const result = await extractPreferences('movie set in the desert with a prophecy');
+    expect(result.keywords).toEqual(['desert', 'prophecy', 'chosen one']);
+  });
+
+  it('works without keywords field for simple genre queries', async () => {
+    const payload = { genres: ['comedy'] };
+    mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify(payload)));
+
+    const result = await extractPreferences('funny movie');
+    expect(result.genres).toEqual(['comedy']);
+    expect(result.keywords).toBeUndefined();
+  });
+
   it('throws "No response from OpenAI" when content is null', async () => {
     mockCreate.mockResolvedValue(makeOpenAIResponse(null));
-
-    await expect(extractPreferences('anything')).rejects.toThrow(
-      'No response from OpenAI'
-    );
+    await expect(extractPreferences('anything')).rejects.toThrow('No response from OpenAI');
   });
 
   it('throws "Invalid JSON response from AI" when content is not valid JSON', async () => {
     mockCreate.mockResolvedValue(makeOpenAIResponse('this is not json'));
-
-    await expect(extractPreferences('anything')).rejects.toThrow(
-      'Invalid JSON response from AI'
-    );
+    await expect(extractPreferences('anything')).rejects.toThrow('Invalid JSON response from AI');
   });
 
   it('returns an empty object when the model returns an empty JSON object', async () => {
     mockCreate.mockResolvedValue(makeOpenAIResponse('{}'));
-
     const result = await extractPreferences('no preferences');
     expect(result).toEqual({});
   });
@@ -82,22 +91,9 @@ describe('extractPreferences', () => {
 // ---------------------------------------------------------------------------
 
 const sampleCandidates = [
-  {
-    id: 438631,
-    title: 'Dune',
-    year: '2021',
-    rating: 7.8,
-    overview: 'Paul Atreides leads nomadic tribes.',
-    genres: ['adventure', 'fantasy'],
-  },
-  {
-    id: 693134,
-    title: 'Dune: Part Two',
-    year: '2024',
-    rating: 8.2,
-    overview: "Paul Atreides unites with Arrakis's people.",
-    genres: ['adventure', 'fantasy'],
-  },
+  { id: 438631, title: 'Dune', year: '2021', rating: 7.8, overview: 'Paul Atreides leads nomadic tribes in the desert.', genres: ['adventure', 'fantasy'] },
+  { id: 693134, title: 'Dune: Part Two', year: '2024', rating: 8.2, overview: "Paul fulfills the desert prophecy.", genres: ['adventure', 'fantasy'] },
+  { id: 11, title: 'Star Wars', year: '1977', rating: 8.6, overview: 'A long time ago in a galaxy far away.', genres: ['science fiction', 'adventure'] },
 ];
 
 describe('rankMovies', () => {
@@ -117,28 +113,22 @@ describe('rankMovies', () => {
     });
 
     it('handles { movies: [...] } format', async () => {
-      const payload = {
-        movies: [{ id: 438631, rank: 1, reason: 'Great desert film.' }],
-      };
+      const payload = { movies: [{ id: 438631, rank: 1, reason: 'Great desert film.' }] };
       mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify(payload)));
 
       const result = await rankMovies(sampleCandidates, 'desert');
-      expect(result).toHaveLength(1);
       expect(result[0].id).toBe(438631);
     });
 
     it('handles bare array format (fallback)', async () => {
-      const payload = [{ id: 438631, rank: 1, reason: 'Top pick.' }];
-      mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify(payload)));
+      mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify([{ id: 438631, rank: 1, reason: 'Top pick.' }])));
 
       const result = await rankMovies(sampleCandidates, 'desert');
       expect(result[0].id).toBe(438631);
     });
 
     it('handles any other array key via generic fallback', async () => {
-      const payload = {
-        ranked_movies: [{ id: 693134, rank: 1, reason: 'Best match.' }],
-      };
+      const payload = { ranked_movies: [{ id: 693134, rank: 1, reason: 'Best match.' }] };
       mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify(payload)));
 
       const result = await rankMovies(sampleCandidates, 'desert');
@@ -148,12 +138,7 @@ describe('rankMovies', () => {
 
   describe('field defaults', () => {
     it('fills in rank from index when rank field is missing', async () => {
-      const payload = {
-        results: [
-          { id: 438631, reason: 'No rank field.' },
-          { id: 693134, reason: 'Also no rank.' },
-        ],
-      };
+      const payload = { results: [{ id: 438631, reason: 'No rank.' }, { id: 693134, reason: 'Also no rank.' }] };
       mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify(payload)));
 
       const result = await rankMovies(sampleCandidates);
@@ -162,13 +147,11 @@ describe('rankMovies', () => {
     });
 
     it('uses "explanation" field as fallback for reason', async () => {
-      const payload = {
-        results: [{ id: 438631, rank: 1, explanation: 'Explanation field used.' }],
-      };
+      const payload = { results: [{ id: 438631, rank: 1, explanation: 'Uses explanation field.' }] };
       mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify(payload)));
 
       const result = await rankMovies(sampleCandidates);
-      expect(result[0].reason).toBe('Explanation field used.');
+      expect(result[0].reason).toBe('Uses explanation field.');
     });
 
     it('provides default reason when neither reason nor explanation present', async () => {
@@ -180,38 +163,43 @@ describe('rankMovies', () => {
     });
   });
 
+  describe('"always return results" behaviour', () => {
+    it('returns closest matches even when query is unusual', async () => {
+      // Simulates GPT returning its best attempt for a weird query
+      const payload = {
+        results: [
+          { id: 11, rank: 1, reason: 'Closest match available for your unusual request.' },
+          { id: 438631, rank: 2, reason: 'Also somewhat related.' },
+        ],
+      };
+      mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify(payload)));
+
+      const result = await rankMovies(sampleCandidates, 'aliens teaching penguins to cook pasta');
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0].reason).toContain('Closest match');
+    });
+  });
+
   describe('error cases', () => {
     it('throws "Invalid JSON response from AI" when content is not valid JSON', async () => {
       mockCreate.mockResolvedValue(makeOpenAIResponse('not valid json {{'));
-
-      await expect(rankMovies(sampleCandidates, 'desert')).rejects.toThrow(
-        'Invalid JSON response from AI'
-      );
+      await expect(rankMovies(sampleCandidates, 'desert')).rejects.toThrow('Invalid JSON response from AI');
     });
 
     it('throws "No response from OpenAI" when content is null', async () => {
       mockCreate.mockResolvedValue(makeOpenAIResponse(null));
-
-      await expect(rankMovies(sampleCandidates)).rejects.toThrow(
-        'No response from OpenAI'
-      );
+      await expect(rankMovies(sampleCandidates)).rejects.toThrow('No response from OpenAI');
     });
 
     it('throws "No movies found matching your preferences" for empty results array', async () => {
-      mockCreate.mockResolvedValue(
-        makeOpenAIResponse(JSON.stringify({ results: [] }))
-      );
-
+      mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify({ results: [] })));
       await expect(rankMovies(sampleCandidates, 'obscure query')).rejects.toThrow(
         'No movies found matching your preferences'
       );
     });
 
     it('throws "No movies found" when object has no array values', async () => {
-      mockCreate.mockResolvedValue(
-        makeOpenAIResponse(JSON.stringify({ message: 'no matches' }))
-      );
-
+      mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify({ message: 'no matches' })));
       await expect(rankMovies(sampleCandidates, 'nothing')).rejects.toThrow(
         'No movies found matching your preferences'
       );

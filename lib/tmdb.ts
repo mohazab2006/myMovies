@@ -179,6 +179,28 @@ export async function getTrendingMovies(
   return response.json();
 }
 
+export async function getKeywordIds(terms: string[]): Promise<number[]> {
+  const apiKey = process.env.TMDB_API_KEY;
+  if (!apiKey || terms.length === 0) return [];
+
+  const results = await Promise.allSettled(
+    terms.slice(0, 5).map(async (term) => {
+      const response = await fetch(
+        `${TMDB_BASE_URL}/search/keyword?api_key=${apiKey}&query=${encodeURIComponent(term)}`
+      );
+      if (!response.ok) return [] as number[];
+      const data = await response.json();
+      return ((data.results || []) as { id: number }[]).slice(0, 2).map((k) => k.id);
+    })
+  );
+
+  const ids: number[] = [];
+  for (const result of results) {
+    if (result.status === 'fulfilled') ids.push(...result.value);
+  }
+  return Array.from(new Set(ids));
+}
+
 export async function getGenres(): Promise<Array<{ id: number; name: string }>> {
   const apiKey = process.env.TMDB_API_KEY;
   if (!apiKey) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractPreferences, rankMovies } from '@/lib/openai';
-import { discoverMovies, getMovieDetails, getGenres, TMDBMovie } from '@/lib/tmdb';
+import { discoverMovies, getMovieDetails, getGenres, getKeywordIds, searchMovies, TMDBMovie } from '@/lib/tmdb';
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,87 +57,132 @@ export async function POST(request: NextRequest) {
       preferences['primary_release_date.lte'] = `${yearTo}-12-31`;
     }
 
-    // Step 2: Get genre IDs from TMDB
-    const genreList = await getGenres();
+    // Step 2: Resolve genre IDs and keyword IDs in parallel
+    const [genreList, keywordIds] = await Promise.all([
+      getGenres(),
+      preferences.keywords?.length > 0
+        ? getKeywordIds(preferences.keywords)
+        : Promise.resolve([] as number[]),
+    ]);
+
     const genreMap = new Map(genreList.map(g => [g.name.toLowerCase(), g.id]));
-    
+    const genreIdToName = new Map(genreList.map(g => [g.id, g.name.toLowerCase()]));
+
     // Convert genre names to IDs
+    let requestedGenreIds: number[] = [];
     if (preferences.genres && Array.isArray(preferences.genres)) {
-      const genreIds = preferences.genres
+      requestedGenreIds = preferences.genres
         .map((g: string) => genreMap.get(g.toLowerCase()))
         .filter((id: number | undefined): id is number => id !== undefined);
-      
-      if (genreIds.length > 0) {
-        preferences.with_genres = genreIds.join(',');
-        delete preferences.genres;
-      }
     }
-    
-    // Store requested genre IDs for later filtering
-    const requestedGenreIds = preferences.with_genres 
-      ? preferences.with_genres.split(',').map((id: string) => parseInt(id))
-      : [];
 
-    // Step 3: Fetch candidate movies from TMDB (batch retrieval)
+    // Build clean TMDB discover params (only fields TMDB understands)
+    const tmdbBase: Record<string, any> = {};
+    if (requestedGenreIds.length > 0) tmdbBase.with_genres = requestedGenreIds.join(',');
+    if (preferences['vote_average.gte']) tmdbBase['vote_average.gte'] = preferences['vote_average.gte'];
+    if (preferences['primary_release_date.gte']) tmdbBase['primary_release_date.gte'] = preferences['primary_release_date.gte'];
+    if (preferences['primary_release_date.lte']) tmdbBase['primary_release_date.lte'] = preferences['primary_release_date.lte'];
+    if (preferences['with_runtime.lte']) tmdbBase['with_runtime.lte'] = preferences['with_runtime.lte'];
+
+    // Step 3: Multi-strategy candidate discovery — never returns empty
+    const seen = new Set<number>();
     const candidates: TMDBMovie[] = [];
-    const maxPages = 3; // Fetch up to 3 pages (60 movies per page = 180 max)
-    
-    for (let page = 1; page <= maxPages; page++) {
-      const discoverParams = {
-        ...preferences,
-        sort_by: 'popularity.desc',
-        page,
-      };
-      
-      const response = await discoverMovies(discoverParams);
-      candidates.push(...response.results);
-      
-      if (page >= response.total_pages) break;
+
+    const addMovies = (movies: TMDBMovie[]) => {
+      for (const m of movies) {
+        if (!seen.has(m.id)) {
+          seen.add(m.id);
+          candidates.push(m);
+        }
+      }
+    };
+
+    // Strategy 1 (parallel): genre-based discover + keyword-based discover
+    const discoveryJobs: Promise<TMDBMovie[]>[] = [];
+
+    // Genre discover — up to 3 pages
+    discoveryJobs.push((async () => {
+      const movies: TMDBMovie[] = [];
+      for (let page = 1; page <= 3; page++) {
+        try {
+          const res = await discoverMovies({ ...tmdbBase, sort_by: 'popularity.desc', page });
+          movies.push(...res.results);
+          if (page >= res.total_pages) break;
+        } catch { break; }
+      }
+      return movies;
+    })());
+
+    // Keyword discover — uses OR logic across all keyword IDs, 2 pages
+    if (keywordIds.length > 0) {
+      discoveryJobs.push((async () => {
+        const movies: TMDBMovie[] = [];
+        const kwParams = { ...tmdbBase, with_keywords: keywordIds.join('|'), sort_by: 'popularity.desc' };
+        for (let page = 1; page <= 2; page++) {
+          try {
+            const res = await discoverMovies({ ...kwParams, page });
+            movies.push(...res.results);
+            if (page >= res.total_pages) break;
+          } catch { break; }
+        }
+        return movies;
+      })());
     }
 
-    if (candidates.length === 0) {
-      return NextResponse.json(
-        { error: 'No movies found matching your criteria' },
-        { status: 404 }
+    const strategyOneResults = await Promise.allSettled(discoveryJobs);
+    for (const r of strategyOneResults) {
+      if (r.status === 'fulfilled') addMovies(r.value);
+    }
+
+    // Strategy 2: TMDB text search with the original prompt
+    if (candidates.length < 20 && prompt) {
+      try {
+        const searchRes = await searchMovies(prompt);
+        addMovies(searchRes.results);
+      } catch { /* ignore */ }
+    }
+
+    // Strategy 3: keyword text searches (individual terms)
+    if (candidates.length < 20 && preferences.keywords?.length > 0) {
+      await Promise.allSettled(
+        (preferences.keywords as string[]).slice(0, 3).map(async (kw: string) => {
+          try {
+            const res = await searchMovies(kw);
+            addMovies(res.results);
+          } catch { /* ignore */ }
+        })
       );
     }
 
-    // Step 4: Get genre names for filtering
-    const genreIdToName = new Map(genreList.map(g => [g.id, g.name.toLowerCase()]));
-    
-    // Step 5: Prepare candidate data for AI ranking (include genre info)
-    const candidateData = candidates.slice(0, 200)
-      .map(movie => {
-        // Get genre names from genre_ids (TMDB discover returns genre_ids, not full genre objects)
-        const movieGenreIds = (movie as any).genre_ids || [];
-        const movieGenres = movieGenreIds
-          .map((id: number) => genreIdToName.get(id))
-          .filter((name: string | undefined): name is string => name !== undefined);
-        
-        return {
-          id: movie.id,
-          title: movie.title,
-          year: movie.release_date?.split('-')[0] || 'Unknown',
-          rating: movie.vote_average,
-          overview: movie.overview || '',
-          genres: movieGenres,
-        };
-      })
-      // Server-side filter: if specific genres were requested, only include movies with those genres
-      .filter((movie, index) => {
-        if (requestedGenreIds.length > 0) {
-          const originalMovie = candidates[index];
-          const movieGenreIds = originalMovie.genre_ids || [];
-          // Check if movie has at least one of the requested genres
-          return requestedGenreIds.some((requestedId: number) => movieGenreIds.includes(requestedId));
-        }
-        return true;
-      });
+    // Strategy 4: popular movies safety net — guarantees we always have candidates
+    if (candidates.length < 5) {
+      try {
+        const popular = await discoverMovies({ sort_by: 'popularity.desc', page: 1 });
+        addMovies(popular.results);
+      } catch { /* ignore */ }
+    }
 
-    // Step 6: AI ranking
+    // Step 4: Prepare candidate data for AI ranking
+    const candidateData = candidates.slice(0, 200).map(movie => {
+      const movieGenreIds = (movie as any).genre_ids || [];
+      const movieGenres = movieGenreIds
+        .map((id: number) => genreIdToName.get(id))
+        .filter((name: string | undefined): name is string => name !== undefined);
+
+      return {
+        id: movie.id,
+        title: movie.title,
+        year: movie.release_date?.split('-')[0] || 'Unknown',
+        rating: movie.vote_average,
+        overview: movie.overview || '',
+        genres: movieGenres,
+      };
+    });
+
+    // Step 5: AI ranking
     const ranked = await rankMovies(candidateData, prompt || JSON.stringify(preferences));
 
-    // Step 7: Fetch full details for top-ranked movies
+    // Step 6: Fetch full details for top-ranked movies
     const topMovies = ranked.slice(0, 10);
     
     // Use Promise.allSettled to handle individual failures gracefully

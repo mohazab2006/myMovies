@@ -13,6 +13,7 @@ function getOpenAIClient() {
 export interface StructuredPreferences {
   genres?: string[];
   avoid?: string[];
+  keywords?: string[];
   runtime_max?: number;
   runtime_min?: number;
   tone?: string;
@@ -49,6 +50,7 @@ IMPORTANT: Map common words to standard genre names:
 
 Extract the following information:
 - genres: Array of standard TMDB genre names (e.g., ["comedy", "thriller", "mystery", "drama", "action", "romance", "horror", "science fiction", "fantasy", "animation"])
+- keywords: Array of specific themes, settings, objects, or story elements to search for (e.g., ["desert", "prophecy", "heist", "time travel", "robot", "christmas", "based on true story", "cooking", "space station"]). Be generous — extract anything specific and searchable from the input.
 - avoid: Array of genres or themes to avoid (e.g., ["horror", "gore"])
 - runtime_max: Maximum runtime in minutes (if mentioned)
 - runtime_min: Minimum runtime in minutes (if mentioned)
@@ -62,13 +64,10 @@ Return ONLY valid JSON, no markdown, no explanation. If a field is not mentioned
 
 Example output:
 {
-  "genres": ["comedy"],
-  "avoid": ["horror"],
-  "runtime_max": 120,
-  "tone": "lighthearted",
-  "era": "2000+",
-  "vote_average.gte": 7.0,
-  "primary_release_date.gte": "2000-01-01"
+  "genres": ["adventure", "fantasy"],
+  "keywords": ["desert", "prophecy", "chosen one", "sand"],
+  "tone": "epic",
+  "vote_average.gte": 7.0
 }`;
 
   const response = await openai.chat.completions.create({
@@ -123,17 +122,16 @@ ${userPreferences ? `User preferences: ${userPreferences}\n\n` : ''}Candidate mo
 ${candidatesText}
 
 CRITICAL RULES:
-1. If the user requested a specific genre (e.g., "comedy", "funny movie"), ONLY select movies that match that genre. Do NOT include movies from other genres.
-2. If the user said "funny" or "comedy", ONLY select comedy movies. Exclude action, drama, thriller, horror, etc.
-3. If the user said "action", ONLY select action movies.
-4. Strictly filter by genre match first, then rank by quality and relevance.
-5. If no movies match the genre requirement, return an empty results array.
+1. ALWAYS return at least 5 movies — never return an empty results array. If no movie perfectly matches, return the closest ones available.
+2. Prioritize movies that match the user's genre, theme, setting, or mood as closely as possible.
+3. If no perfect match exists, pick the most thematically similar movies and explain why they are the closest match.
+4. Rank by relevance to the user's request — best match first.
+5. Never refuse to return results. Even for unusual or vague requests, always find the nearest matches.
 
 Your task:
-1. Filter movies to ONLY include those matching the user's genre preferences
-2. Select the top 5-10 movies that best match ALL user preferences
-3. Rank them from best match (rank 1) to least match
-4. Provide a 1-2 sentence explanation for why each movie is a good match
+1. Select the top 5-10 movies that best match the user's preferences (or are the closest available)
+2. Rank them from best match (rank 1) to least match
+3. Provide a 1-2 sentence explanation for why each movie fits (or is the closest match to) what the user wants
 
 Return a JSON object with a "results" array. No markdown, no explanation. Format:
 {
