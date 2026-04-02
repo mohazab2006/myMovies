@@ -127,7 +127,7 @@ CRITICAL RULES:
 2. If the user said "funny" or "comedy", ONLY select comedy movies. Exclude action, drama, thriller, horror, etc.
 3. If the user said "action", ONLY select action movies.
 4. Strictly filter by genre match first, then rank by quality and relevance.
-5. If no movies match the genre requirement, return an empty array.
+5. If no movies match the genre requirement, return an empty results array.
 
 Your task:
 1. Filter movies to ONLY include those matching the user's genre preferences
@@ -135,19 +135,21 @@ Your task:
 3. Rank them from best match (rank 1) to least match
 4. Provide a 1-2 sentence explanation for why each movie is a good match
 
-Return ONLY valid JSON array, no markdown, no explanation. Format:
-[
-  {
-    "id": 12345,
-    "rank": 1,
-    "reason": "A tense mystery with layered characters and a strong final twist."
-  },
-  {
-    "id": 67890,
-    "rank": 2,
-    "reason": "Smart dialogue and compelling character development."
-  }
-]`;
+Return a JSON object with a "results" array. No markdown, no explanation. Format:
+{
+  "results": [
+    {
+      "id": 12345,
+      "rank": 1,
+      "reason": "A tense mystery with layered characters and a strong final twist."
+    },
+    {
+      "id": 67890,
+      "rank": 2,
+      "reason": "Smart dialogue and compelling character development."
+    }
+  ]
+}`;
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -168,40 +170,42 @@ Return ONLY valid JSON array, no markdown, no explanation. Format:
     throw new Error('No response from OpenAI');
   }
 
+  let parsed: any;
   try {
-    const parsed = JSON.parse(content);
-    // Handle both { results: [...] } and [...] formats
-    let results: any[] = [];
-    if (Array.isArray(parsed)) {
-      results = parsed;
-    } else if (parsed.results && Array.isArray(parsed.results)) {
-      results = parsed.results;
-    } else if (parsed.movies && Array.isArray(parsed.movies)) {
-      results = parsed.movies;
-    } else {
-      // Try to find any array in the response
-      const keys = Object.keys(parsed);
-      for (const key of keys) {
-        if (Array.isArray(parsed[key])) {
-          results = parsed[key];
-          break;
-        }
-      }
-    }
-    
-    if (results.length === 0) {
-      throw new Error('No ranked movies in AI response');
-    }
-    
-    return results.map((item: any, index: number) => ({
-      id: item.id,
-      rank: item.rank !== undefined ? item.rank : index + 1,
-      reason: item.reason || item.explanation || 'A great match for your preferences.',
-    }));
+    parsed = JSON.parse(content);
   } catch (error) {
-    console.error('Failed to parse rankings:', content);
+    console.error('Failed to parse AI ranking response as JSON:', content);
     throw new Error('Invalid JSON response from AI');
   }
+
+  // Handle both { results: [...] }, { movies: [...] }, and bare array formats
+  let results: any[] = [];
+  if (Array.isArray(parsed)) {
+    results = parsed;
+  } else if (parsed.results && Array.isArray(parsed.results)) {
+    results = parsed.results;
+  } else if (parsed.movies && Array.isArray(parsed.movies)) {
+    results = parsed.movies;
+  } else {
+    // Try to find any array in the response
+    const keys = Object.keys(parsed);
+    for (const key of keys) {
+      if (Array.isArray(parsed[key])) {
+        results = parsed[key];
+        break;
+      }
+    }
+  }
+
+  if (results.length === 0) {
+    throw new Error('No movies found matching your preferences');
+  }
+
+  return results.map((item: any, index: number) => ({
+    id: item.id,
+    rank: item.rank !== undefined ? item.rank : index + 1,
+    reason: item.reason || item.explanation || 'A great match for your preferences.',
+  }));
 }
 
 export async function generateMovieExplanation(
