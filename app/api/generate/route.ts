@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { extractPreferences, rankMovies } from '@/lib/openai';
-import { discoverMovies, getMovieDetails, getGenres, getKeywordIds, searchMovies, TMDBMovie } from '@/lib/tmdb';
+import { extractPreferences, rankMovies, broadenSearch } from '@/lib/openai';
+import { discoverMovies, getMovieDetails, getGenres, getKeywordIds, TMDBMovie } from '@/lib/tmdb';
 
 export async function POST(request: NextRequest) {
   try {
@@ -134,27 +134,41 @@ export async function POST(request: NextRequest) {
       if (r.status === 'fulfilled') addMovies(r.value);
     }
 
-    // Strategy 2: TMDB text search with the original prompt
+    // Strategy 2: AI-driven broadening — GPT suggests alternative genres/keywords
     if (candidates.length < 20 && prompt) {
       try {
-        const searchRes = await searchMovies(prompt);
-        addMovies(searchRes.results);
-      } catch { /* ignore */ }
+        const broader = await broadenSearch(
+          prompt,
+          preferences.genres || [],
+          preferences.keywords || []
+        );
+
+        const broaderKeywordIds = broader.keywords.length > 0
+          ? await getKeywordIds(broader.keywords)
+          : [];
+
+        const broaderGenreIds = broader.genres
+          .map((g: string) => genreMap.get(g.toLowerCase()))
+          .filter((id: number | undefined): id is number => id !== undefined);
+
+        const broaderParams: Record<string, any> = { ...tmdbBase, sort_by: 'popularity.desc' };
+        if (broaderGenreIds.length > 0) broaderParams.with_genres = broaderGenreIds.join(',');
+        if (broaderKeywordIds.length > 0) broaderParams.with_keywords = broaderKeywordIds.join('|');
+
+        // Only run if GPT actually gave us something new to try
+        if (broaderGenreIds.length > 0 || broaderKeywordIds.length > 0) {
+          const broaderJobs = await Promise.allSettled([
+            discoverMovies({ ...broaderParams, page: 1 }),
+            discoverMovies({ ...broaderParams, page: 2 }),
+          ]);
+          for (const r of broaderJobs) {
+            if (r.status === 'fulfilled') addMovies(r.value.results);
+          }
+        }
+      } catch { /* ignore — broadening is best-effort */ }
     }
 
-    // Strategy 3: keyword text searches (individual terms)
-    if (candidates.length < 20 && preferences.keywords?.length > 0) {
-      await Promise.allSettled(
-        (preferences.keywords as string[]).slice(0, 3).map(async (kw: string) => {
-          try {
-            const res = await searchMovies(kw);
-            addMovies(res.results);
-          } catch { /* ignore */ }
-        })
-      );
-    }
-
-    // Strategy 4: popular movies safety net — guarantees we always have candidates
+    // Strategy 3: popular movies safety net — guarantees we always have candidates
     if (candidates.length < 5) {
       try {
         const popular = await discoverMovies({ sort_by: 'popularity.desc', page: 1 });

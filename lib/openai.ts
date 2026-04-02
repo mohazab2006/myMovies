@@ -206,6 +206,62 @@ Return a JSON object with a "results" array. No markdown, no explanation. Format
   }));
 }
 
+export async function broadenSearch(
+  userInput: string,
+  usedGenres: string[],
+  usedKeywords: string[]
+): Promise<{ genres: string[]; keywords: string[] }> {
+  const openai = getOpenAIClient();
+
+  const prompt = `A user asked for movies matching: "${userInput}"
+
+Initial search already used:
+- Genres: ${usedGenres.length > 0 ? usedGenres.join(', ') : 'none'}
+- Keywords: ${usedKeywords.length > 0 ? usedKeywords.join(', ') : 'none'}
+
+That returned too few results. Suggest BROADER or ALTERNATIVE search terms to surface more relevant movies while staying true to what the user wants.
+
+Think laterally:
+- What other genres contain movies with a similar vibe or themes?
+- What related keywords, settings, or story elements might appear in movies the user would enjoy?
+- Do NOT repeat terms already used above.
+
+Return ONLY valid JSON with two arrays. Example:
+{
+  "genres": ["drama", "history"],
+  "keywords": ["epic", "mythology", "ancient civilization", "hero"]
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a movie search strategist. When a search returns too few results, suggest broader alternative genres and keywords. Always return valid JSON only.',
+      },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.5,
+    response_format: { type: 'json_object' },
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    return { genres: [], keywords: [] };
+  }
+
+  try {
+    const parsed = JSON.parse(content);
+    return {
+      genres: Array.isArray(parsed.genres) ? parsed.genres : [],
+      keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
+    };
+  } catch {
+    return { genres: [], keywords: [] };
+  }
+}
+
 export async function generateMovieExplanation(
   movie: {
     title: string;

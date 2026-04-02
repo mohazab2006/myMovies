@@ -17,7 +17,7 @@ jest.mock('openai', () =>
   }))
 );
 
-import { extractPreferences, rankMovies } from '@/lib/openai';
+import { extractPreferences, rankMovies, broadenSearch } from '@/lib/openai';
 
 beforeAll(() => {
   process.env.OPENAI_API_KEY = 'test-key';
@@ -165,7 +165,6 @@ describe('rankMovies', () => {
 
   describe('"always return results" behaviour', () => {
     it('returns closest matches even when query is unusual', async () => {
-      // Simulates GPT returning its best attempt for a weird query
       const payload = {
         results: [
           { id: 11, rank: 1, reason: 'Closest match available for your unusual request.' },
@@ -178,6 +177,54 @@ describe('rankMovies', () => {
       expect(result.length).toBeGreaterThan(0);
       expect(result[0].reason).toContain('Closest match');
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// broadenSearch
+// ---------------------------------------------------------------------------
+
+describe('broadenSearch', () => {
+  it('returns broader genres and keywords from GPT', async () => {
+    const payload = {
+      genres: ['drama', 'history'],
+      keywords: ['epic', 'mythology', 'ancient civilization'],
+    };
+    mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify(payload)));
+
+    const result = await broadenSearch('desert prophecy movie', ['adventure'], ['desert', 'prophecy']);
+    expect(result.genres).toEqual(['drama', 'history']);
+    expect(result.keywords).toEqual(['epic', 'mythology', 'ancient civilization']);
+  });
+
+  it('returns empty arrays when GPT returns no content', async () => {
+    mockCreate.mockResolvedValue(makeOpenAIResponse(null));
+
+    const result = await broadenSearch('weird query', [], []);
+    expect(result).toEqual({ genres: [], keywords: [] });
+  });
+
+  it('returns empty arrays when GPT returns invalid JSON', async () => {
+    mockCreate.mockResolvedValue(makeOpenAIResponse('not json'));
+
+    const result = await broadenSearch('weird query', [], []);
+    expect(result).toEqual({ genres: [], keywords: [] });
+  });
+
+  it('handles missing genres key gracefully', async () => {
+    mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify({ keywords: ['epic'] })));
+
+    const result = await broadenSearch('query', [], []);
+    expect(result.genres).toEqual([]);
+    expect(result.keywords).toEqual(['epic']);
+  });
+
+  it('handles missing keywords key gracefully', async () => {
+    mockCreate.mockResolvedValue(makeOpenAIResponse(JSON.stringify({ genres: ['action'] })));
+
+    const result = await broadenSearch('query', [], []);
+    expect(result.genres).toEqual(['action']);
+    expect(result.keywords).toEqual([]);
   });
 
   describe('error cases', () => {
