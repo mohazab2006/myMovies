@@ -94,6 +94,18 @@ function HomeContent() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    const handleHomeReset = () => {
+      setResults([]);
+      setError(null);
+      setIsSearchMode(false);
+      setSearchQuery(null);
+      setPrompt('');
+    };
+    window.addEventListener('homeReset', handleHomeReset);
+    return () => window.removeEventListener('homeReset', handleHomeReset);
+  }, []);
+
   const handleSearch = async (query: string) => {
     setIsLoading(true);
     setError(null);

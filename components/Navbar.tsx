@@ -14,6 +14,14 @@ export default function Navbar() {
 
   const isActive = (path: string) => pathname === path;
 
+  const handleHomeClick = (e: React.MouseEvent) => {
+    if (pathname === '/') {
+      e.preventDefault();
+      window.dispatchEvent(new Event('homeReset'));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
@@ -54,7 +62,7 @@ export default function Navbar() {
       }`}
     >
       <div className="mx-auto flex h-14 max-w-[1920px] items-center gap-3 px-4 sm:h-16 sm:gap-4 sm:px-6 lg:px-10">
-        <Link href="/" className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
+        <Link href="/" onClick={handleHomeClick} className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
           <div className="relative flex h-8 w-8 items-center justify-center sm:h-9 sm:w-9">
             {!logoError ? (
               <Image
@@ -99,6 +107,7 @@ export default function Navbar() {
           </Link>
           <Link
             href="/"
+            onClick={handleHomeClick}
             className={`rounded px-2.5 py-2 text-sm font-medium transition-colors sm:px-3 ${
               isActive('/') ? 'text-white' : 'text-zinc-400 hover:text-white'
             }`}
