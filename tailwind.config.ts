@@ -11,6 +11,14 @@ const config: Config = {
       colors: {
         background: 'var(--background)',
         foreground: 'var(--foreground)',
+        surface: '#141414',
+        'surface-elevated': '#181818',
+        brand: '#E50914',
+        'brand-hover': '#F40612',
+        muted: '#808080',
+      },
+      fontFamily: {
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
       },
     },
   },

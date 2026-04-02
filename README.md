@@ -13,6 +13,14 @@ Describe what you're in the mood for and it'll find movies that actually match �
 - **Trending** — see what's popular this week
 - **Seasonal picks** — Halloween movies in October, holiday films in December, etc.
 
+## Stack
+
+- Next.js 14
+- TypeScript
+- Tailwind
+- OpenAI API (GPT-4)
+- TMDB API
+
 ## Setup
 
 ```bash
@@ -41,14 +49,6 @@ Open http://localhost:3000
 When you type something like "90s action movie with a good soundtrack", the app sends that to GPT-4 along with your filters. GPT returns a list of movie titles that match. Then we look those up on TMDB to get posters, ratings, and details.
 
 The AI also explains why it picked each movie, which shows up on the cards.
-
-## Stack
-
-- Next.js 14
-- TypeScript
-- Tailwind
-- OpenAI API (GPT-4)
-- TMDB API
 
 ## File structure
 

@@ -123,11 +123,11 @@ export default function SearchBarWithSuggestions() {
               setShowSuggestions(true);
             }
           }}
-          placeholder="Search movies..."
-          className="w-full px-3 sm:px-4 py-1.5 sm:py-2 md:py-2.5 pl-7 sm:pl-9 md:pl-10 pr-8 sm:pr-10 md:pr-12 border-2 border-gray-700 rounded-lg sm:rounded-xl bg-gray-900 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all duration-200 text-xs sm:text-sm placeholder-gray-400"
+          placeholder="Titles, people, genres"
+          className="w-full rounded border border-white/20 bg-black/40 py-2 pl-9 pr-9 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-white/50 focus:bg-black/55 sm:py-2.5 sm:pl-10 sm:pr-10 md:text-[0.9375rem]"
         />
-        <div className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500 sm:left-3">
+          <svg className="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
@@ -138,7 +138,7 @@ export default function SearchBarWithSuggestions() {
               setShowSuggestions(false);
               inputRef.current?.focus();
             }}
-            className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 sm:right-3"
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -149,7 +149,7 @@ export default function SearchBarWithSuggestions() {
 
       {/* Suggestions Dropdown */}
       {showSuggestions && (suggestions.length > 0 || isLoading) && (
-        <div className="absolute z-50 w-full mt-1.5 sm:mt-2 bg-gray-900 rounded-lg sm:rounded-xl shadow-2xl border border-gray-800 max-h-80 sm:max-h-96 overflow-y-auto fade-in">
+        <div className="absolute z-50 mt-1.5 max-h-80 w-full overflow-y-auto rounded border border-white/10 bg-[#1a1a1a] shadow-2xl sm:mt-2 sm:max-h-96 fade-in">
           {isLoading ? (
             <div className="p-3 sm:p-4 text-center text-gray-500">
               <div className="inline-block animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-black dark:border-white border-t-transparent"></div>
@@ -170,8 +170,8 @@ export default function SearchBarWithSuggestions() {
                       setQuery('');
                       setShowSuggestions(false);
                     }}
-                    className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 hover:bg-gray-800 transition-all duration-200 cursor-pointer border-b border-gray-800 last:border-b-0 ${
-                      isSelected ? 'bg-gray-800' : ''
+                    className={`flex cursor-pointer items-center gap-2 border-b border-white/5 p-2.5 transition-colors last:border-b-0 sm:gap-3 sm:p-3 ${
+                      isSelected ? 'bg-white/10' : 'hover:bg-white/5'
                     }`}
                   >
                     {/* Movie Poster */}
@@ -240,7 +240,7 @@ export default function SearchBarWithSuggestions() {
               {query.trim() && (
                 <div
                   onClick={handleSearch}
-                  className="p-2.5 sm:p-3 bg-gray-800 border-t border-gray-700 hover:bg-gray-700 transition-colors cursor-pointer text-center"
+                  className="cursor-pointer border-t border-white/10 bg-zinc-900 p-2.5 text-center transition-colors hover:bg-zinc-800 sm:p-3"
                 >
                   <span className="text-xs sm:text-sm font-medium text-white">
                     View all results for &quot;{query}&quot;
